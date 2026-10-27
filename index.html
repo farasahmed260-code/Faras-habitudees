@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Habitudes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1f2a44">
+<title>Habitudes 30 jours</title>
+<style>
+  :root { --bg:#0f1629; --card:#1b2540; --txt:#f2f4fa; --mut:#9aa6c4; --ok:#35c28a; --acc:#6c8cff; --warn:#ffb54a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:-apple-system,system-ui,sans-serif;
+         padding:env(safe-area-inset-top) 16px 40px; }
+  h1 { font-size:22px; margin:18px 0 4px; }
+  h2 { font-size:17px; margin:0 0 10px; }
+  .sub { color:var(--mut); font-size:14px; margin-bottom:16px; }
+  .card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:14px; }
+  label { display:block; font-size:13px; color:var(--mut); margin:10px 0 4px; }
+  input, select { width:100%; padding:12px; border-radius:10px; border:1px solid #2d3a5e; background:#0f1629; color:var(--txt); font-size:16px; }
+  .row { display:flex; gap:10px; } .row > div { flex:1; }
+  button { background:var(--acc); color:#fff; border:0; border-radius:12px; padding:13px 16px; font-size:16px; font-weight:600; width:100%; margin-top:12px; }
+  button.sec { background:#2d3a5e; } button.small { width:auto; padding:8px 12px; font-size:14px; margin:0; }
+  .habit { display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid #2d3a5e; }
+  .habit:last-child { border-bottom:0; }
+  .box { width:32px; height:32px; border-radius:10px; border:2px solid var(--mut); flex:none; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .done .box { background:var(--ok); border-color:var(--ok); }
+  .done .name { text-decoration:line-through; color:var(--mut); }
+  .name { flex:1; font-size:17px; } .streak { color:var(--warn); font-size:14px; white-space:nowrap; }
+  .bar { height:10px; background:#0f1629; border-radius:6px; overflow:hidden; margin:8px 0; }
+  .bar > i { display:block; height:100%; background:var(--ok); }
+  .banner { background:var(--warn); color:#1a1a1a; border-radius:14px; padding:14px; font-weight:600; margin-bottom:14px; display:none; }
+  .grid { display:grid; grid-template-columns:repeat(10,1fr); gap:5px; margin-top:8px; }
+  .d { aspect-ratio:1; border-radius:6px; background:#0f1629; font-size:10px; display:flex; align-items:center; justify-content:center; color:var(--mut); }
+  .d.full { background:var(--ok); color:#fff; } .d.part { background:#2f6f5a; color:#fff; } .d.miss { background:#5a2d3a; color:#fff; } .d.today { outline:2px solid var(--acc); }
+  .note { font-size:13px; color:var(--mut); line-height:1.5; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<h1>Mes habitudes</h1>
+<div class="sub" id="status"></div>
+<div class="banner" id="banner"></div>
+
+<!-- ÉCRAN RÉGLAGES -->
+<div id="setup" class="card hidden">
+  <h2>Créer mon défi</h2>
+  <label>Habitudes (une par ligne)</label>
+  <textarea id="habits" rows="4" style="width:100%;padding:12px;border-radius:10px;border:1px solid #2d3a5e;background:#0f1629;color:#f2f4fa;font-size:16px;font-family:inherit">Sport 10 à 20 minutes
+Temps de réflexion assis
+Écrire mes objectifs au présent</textarea>
+  <label>Date de début</label>
+  <input type="date" id="start">
+  <div class="row">
+    <div><label>Durée</label>
+      <select id="dur"><option value="30">30 jours</option><option value="35">35 jours</option></select></div>
+    <div><label>Rappels toutes les</label>
+      <select id="every"><option value="60">1 heure</option><option value="30">30 min</option><option value="120">2 heures</option></select></div>
+  </div>
+  <div class="row">
+    <div><label>Premier rappel</label><input type="time" id="first" value="04:30"></div>
+    <div><label>Dernier rappel</label><input type="time" id="last" value="21:00"></div>
+  </div>
+  <button id="save">Démarrer le défi</button>
+</div>
+
+<!-- ÉCRAN DU JOUR -->
+<div id="main" class="hidden">
+  <div class="card">
+    <h2 id="dayTitle"></h2>
+    <div class="bar"><i id="prog" style="width:0%"></i></div>
+    <div id="list"></div>
+  </div>
+  <div class="card">
+    <h2>Mon calendrier</h2>
+    <div class="grid" id="grid"></div>
+  </div>
+  <div class="card">
+    <h2>Notifications</h2>
+    <button class="sec" id="perm">Activer les notifications</button>
+    <button class="sec" id="test">Tester une notification</button>
+    <p class="note">Les rappels s'affichent tant que l'application est ouverte (ou récemment utilisée). Pour une sécurité en plus, double-les avec des alarmes dans l'app Rappels de l'iPhone.</p>
+  </div>
+  <button class="sec" id="reset">Modifier / recommencer le défi</button>
+</div>
+
+<script>
+const KEY = 'habitudes_v1';
+let S = load();
+
+function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ return null; } }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+function pad(n){ return String(n).padStart(2,'0'); }
+function iso(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function parseISO(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function todayISO(){ return iso(new Date()); }
+function dayIndex(){ return Math.round((parseISO(todayISO()) - parseISO(S.start)) / 86400000); } // 0 = premier jour
+function toMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+const $ = id => document.getElementById(id);
+
+function show(){
+  $('setup').classList.toggle('hidden', !!S);
+  $('main').classList.toggle('hidden', !S);
+  if(!S){
+    $('start').value = $('start').value || todayISO();
+    $('status').textContent = 'Choisis tes habitudes et ta date de départ.';
+    return;
+  }
+  render();
+}
+
+function render(){
+  const idx = dayIndex();
+  const total = S.duration;
+  const t = todayISO();
+  if(idx < 0){
+    $('status').textContent = 'Le défi commence le ' + parseISO(S.start).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}) + '. Aucun rappel d\'ici là.';
+    $('dayTitle').textContent = 'Départ dans ' + (-idx) + ' jour' + (-idx>1?'s':'');
+    $('list').innerHTML = ''; $('prog').style.width = '0%';
+  } else if(idx >= total){
+    $('status').textContent = 'Défi terminé, bravo ! 🎉';
+    $('dayTitle').textContent = total + ' jours accomplis';
+    $('list').innerHTML = ''; $('prog').style.width = '100%';
+  } else {
+    $('status').textContent = 'Rappels de ' + S.first + ' à ' + S.last + ', toutes les ' + (S.every===60?'heures':S.every+' min') + ' tant que ce n\'est pas coché.';
+    $('dayTitle').textContent = 'Jour ' + (idx+1) + ' sur ' + total;
+    const done = (S.log[t] || []);
+    $('list').innerHTML = '';
+    S.habits.forEach((h,i)=>{
+      const el = document.createElement('div');
+      const isDone = done.includes(i);
+      el.className = 'habit' + (isDone ? ' done' : '');
+      el.innerHTML = '<div class="box">'+(isDone?'✓':'')+'</div><div class="name"></div><div class="streak">🔥 '+streak(i)+'</div>';
+      el.querySelector('.name').textContent = h;
+      el.onclick = () => toggle(i);
+      $('list').appendChild(el);
+    });
+    $('prog').style.width = Math.round(done.length / S.habits.length * 100) + '%';
+  }
+  // calendrier
+  const g = $('grid'); g.innerHTML = '';
+  for(let k=0;k<total;k++){
+    const d = new Date(parseISO(S.start)); d.setDate(d.getDate()+k);
+    const key = iso(d), n = (S.log[key]||[]).length;
+    const c = document.createElement('div');
+    let cls = 'd';
+    if(n === S.habits.length) cls += ' full'; else if(n>0) cls += ' part'; else if(k<idx) cls += ' miss';
+    if(k===idx) cls += ' today';
+    c.className = cls; c.textContent = k+1; g.appendChild(c);
+  }
+  checkReminder(false);
+}
+
+function streak(i){
+  let n = 0; const d = parseISO(todayISO());
+  if(!(S.log[iso(d)]||[]).includes(i)) d.setDate(d.getDate()-1);
+  while(iso(d) >= S.start && (S.log[iso(d)]||[]).includes(i)){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+
+function toggle(i){
+  const t = todayISO(); S.log[t] = S.log[t] || [];
+  const p = S.log[t].indexOf(i);
+  if(p>=0) S.log[t].splice(p,1); else S.log[t].push(i);
+  save(); render();
+}
+
+function pending(){
+  if(!S) return [];
+  const idx = dayIndex();
+  if(idx < 0 || idx >= S.duration) return [];
+  const done = S.log[todayISO()] || [];
+  return S.habits.filter((h,i)=>!done.includes(i));
+}
+
+function inWindow(){
+  const now = new Date(); const m = now.getHours()*60+now.getMinutes();
+  return m >= toMin(S.first) && m <= toMin(S.last);
+}
+
+function notify(msg){
+  const b = $('banner'); b.textContent = msg; b.style.display = 'block';
+  if('Notification' in window && Notification.permission === 'granted'){
+    try { new Notification('Habitudes', { body: msg, tag:'habitudes' }); } catch(e){}
+  }
+  if(navigator.vibrate) navigator.vibrate(200);
+}
+
+// Vérifie chaque minute s'il faut rappeler
+function checkReminder(fire){
+  if(!S) return;
+  const p = pending();
+  const b = $('banner');
+  if(!p.length || !inWindow()){ b.style.display = 'none'; return; }
+  // bannière visible tant qu'il reste des tâches dans la plage horaire
+  b.textContent = 'Pas encore fait : ' + p.join(', ') + ' 👉 coche quand c\'est fait.';
+  b.style.display = 'block';
+  if(!fire) return;
+  const now = new Date();
+  const since = (now.getHours()*60+now.getMinutes()) - toMin(S.first);
+  const isSlot = since >= 0 && since % S.every === 0;
+  const slotKey = todayISO()+'-'+since;
+  if(isSlot && S.lastSlot !== slotKey){
+    S.lastSlot = slotKey; save();
+    notify('Est-ce que tu l\'as fait ? Reste : ' + p.join(', '));
+  }
+}
+setInterval(()=>checkReminder(true), 30000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) { if(S) render(); checkReminder(true); } });
+
+$('save').onclick = () => {
+  const habits = $('habits').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!habits.length || !$('start').value){ alert('Ajoute au moins une habitude et une date de début.'); return; }
+  if(toMin($('last').value) <= toMin($('first').value)){ alert('Le dernier rappel doit être après le premier.'); return; }
+  S = { habits, start:$('start').value, duration:+$('dur').value, every:+$('every').value,
+        first:$('first').value, last:$('last').value, log:{}, lastSlot:'' };
+  save(); show();
+};
+$('reset').onclick = () => { if(confirm('Effacer le défi en cours et recommencer ?')){ S=null; try{localStorage.removeItem(KEY);}catch(e){} show(); } };
+$('perm').onclick = async () => {
+  if(!('Notification' in window)){ alert('Installe d\'abord l\'app sur l\'écran d\'accueil (Partager > Sur l\'écran d\'accueil), puis rouvre-la.'); return; }
+  const r = await Notification.requestPermission(); alert(r==='granted' ? 'Notifications activées ✅' : 'Notifications refusées.');
+};
+$('test').onclick = () => notify('Test : les rappels fonctionnent ✅');
+
+show();
+</script>
+</body>
+</html>
