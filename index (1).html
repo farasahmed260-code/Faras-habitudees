@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Habitudes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1629">
+<link rel="apple-touch-icon" id="touchIcon" href="">
+<title>Habitudes</title>
+<style>
+  :root { --bg:#0f1629; --card:#1b2540; --txt:#f2f4fa; --mut:#9aa6c4; --ok:#35c28a; --acc:#6c8cff; --warn:#ffb54a; --line:#2d3a5e; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:-apple-system,system-ui,sans-serif; padding:env(safe-area-inset-top) 0 60px; }
+  .wrap { padding:0 16px; max-width:560px; margin:0 auto; }
+  .hero { height:150px; background:linear-gradient(135deg,#2a3a7a,#6c8cff) center/cover; display:flex; align-items:flex-end; padding:16px; margin-bottom:14px; position:relative; }
+  .hero::after { content:''; position:absolute; inset:0; background:linear-gradient(transparent 30%,rgba(15,22,41,.85)); }
+  .hero h1 { position:relative; z-index:1; margin:0; font-size:26px; }
+  .hero small { position:relative; z-index:1; display:block; color:#dfe6ff; font-size:13px; margin-top:2px; }
+  h2 { font-size:17px; margin:0 0 10px; }
+  .card { background:var(--card); border-radius:16px; padding:14px; margin-bottom:12px; }
+  .banner { background:var(--warn); color:#1a1a1a; border-radius:14px; padding:14px; font-weight:600; margin-bottom:12px; display:none; }
+  .h { border-left:6px solid var(--c,var(--acc)); }
+  .top { display:flex; align-items:center; gap:12px; }
+  .emo { font-size:28px; width:44px; height:44px; border-radius:12px; background:#0f1629; display:flex; align-items:center; justify-content:center; flex:none; }
+  .info { flex:1; min-width:0; }
+  .name { font-size:17px; font-weight:600; }
+  .meta { font-size:12px; color:var(--mut); margin-top:2px; }
+  .box { width:38px; height:38px; border-radius:12px; border:2px solid var(--mut); flex:none; display:flex; align-items:center; justify-content:center; font-size:22px; color:#fff; }
+  .done .box { background:var(--ok); border-color:var(--ok); }
+  .done .name { text-decoration:line-through; color:var(--mut); }
+  .off .box { opacity:.25; } .off { opacity:.75; }
+  .bar { height:7px; background:#0f1629; border-radius:5px; overflow:hidden; margin:10px 0 6px; }
+  .bar > i { display:block; height:100%; background:var(--c,var(--ok)); }
+  .grid { display:flex; flex-wrap:wrap; gap:3px; margin-top:6px; }
+  .d { width:11px; height:11px; border-radius:3px; background:#0f1629; }
+  .d.full { background:var(--ok); } .d.miss { background:#5a2d3a; } .d.today { outline:2px solid var(--acc); }
+  .edit { background:none; border:0; color:var(--mut); font-size:18px; padding:6px; width:auto; margin:0; }
+  button { background:var(--acc); color:#fff; border:0; border-radius:12px; padding:13px 16px; font-size:16px; font-weight:600; width:100%; margin-top:10px; font-family:inherit; }
+  button.sec { background:var(--line); } button.danger { background:#a33a4f; }
+  label { display:block; font-size:13px; color:var(--mut); margin:10px 0 4px; }
+  input, select { width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:#0f1629; color:var(--txt); font-size:16px; font-family:inherit; }
+  .row { display:flex; gap:10px; } .row > div { flex:1; }
+  .emojis { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .emojis span { font-size:24px; padding:6px; border-radius:10px; background:#0f1629; border:2px solid transparent; }
+  .emojis span.sel { border-color:var(--acc); }
+  .colors { display:flex; gap:10px; margin-top:6px; }
+  .colors span { width:32px; height:32px; border-radius:50%; border:3px solid transparent; }
+  .colors span.sel { border-color:#fff; }
+  .note { font-size:13px; color:var(--mut); line-height:1.5; margin:8px 0 0; }
+  .hidden { display:none; }
+  #net { font-size:12px; color:var(--mut); text-align:center; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="hero" id="hero"><div><h1>Mes habitudes</h1><small id="status"></small></div></div>
+<div class="wrap">
+  <div class="banner" id="banner"></div>
+
+  <div id="main">
+    <div id="list"></div>
+    <button id="add">➕ Ajouter une habitude</button>
+
+    <div class="card" style="margin-top:16px">
+      <h2>Rappels fiables (même app fermée)</h2>
+      <button class="sec" id="ics">📅 Ajouter les alarmes au Calendrier</button>
+      <p class="note">Crée des alarmes toutes les heures dans l'app Calendrier de ton iPhone, qui sonnent même application fermée et sans internet. Elles ne s'arrêtent pas quand tu coches : c'est la limite d'iOS.</p>
+    </div>
+
+    <div class="card">
+      <h2>Notifications dans l'app</h2>
+      <button class="sec" id="perm">🔔 Activer les notifications</button>
+      <button class="sec" id="test">Tester une notification</button>
+      <p class="note">Ces rappels-là s'arrêtent dès que tu coches, mais ils ne sonnent que si l'application est ouverte ou récemment utilisée.</p>
+    </div>
+
+    <div class="card">
+      <h2>Personnaliser</h2>
+      <button class="sec" id="photoBtn">🖼️ Choisir une image d'objectif</button>
+      <button class="sec" id="photoDel">Retirer l'image</button>
+      <input type="file" id="photoIn" accept="image/*" class="hidden">
+    </div>
+    <div id="net"></div>
+  </div>
+
+  <!-- FORMULAIRE HABITUDE -->
+  <div id="form" class="card hidden">
+    <h2 id="formTitle">Nouvelle habitude</h2>
+    <label>Nom</label><input id="fName" placeholder="Ex : Sport 10 à 20 minutes">
+    <label>Emoji</label><div class="emojis" id="fEmojis"></div>
+    <label>Couleur</label><div class="colors" id="fColors"></div>
+    <div class="row">
+      <div><label>Date de début</label><input type="date" id="fStart"></div>
+      <div><label>Nombre de jours</label><input type="number" id="fDur" min="1" max="365" value="30" inputmode="numeric"></div>
+    </div>
+    <div class="row">
+      <div><label>Premier rappel</label><input type="time" id="fFirst" value="04:30"></div>
+      <div><label>Dernier rappel</label><input type="time" id="fLast" value="21:00"></div>
+    </div>
+    <label>Rappeler toutes les</label>
+    <select id="fEvery"><option value="30">30 minutes</option><option value="60" selected>1 heure</option><option value="120">2 heures</option></select>
+    <button id="fSave">Enregistrer</button>
+    <button class="sec" id="fCancel">Annuler</button>
+    <button class="danger hidden" id="fDelete">Supprimer cette habitude</button>
+  </div>
+</div>
+
+<script>
+const KEY = 'habitudes_v2', OLD = 'habitudes_v1';
+const EMOJIS = ['💪','🏃','🧘','📖','✍️','🙏','💧','🎯','🧠','🌅','🛌','🍎','🎸','💼','🚗','🔥','⭐','🌍'];
+const COLORS = ['#6c8cff','#35c28a','#ffb54a','#ff6b8a','#b07cff','#3fc1e0'];
+const $ = id => document.getElementById(id);
+let S = load(), editingId = null, fEmoji = EMOJIS[0], fColor = COLORS[0];
+
+/* ---------- données ---------- */
+function load(){
+  try {
+    const n = JSON.parse(localStorage.getItem(KEY)); if(n) return n;
+    const o = JSON.parse(localStorage.getItem(OLD));      // migration depuis la version 1
+    if(o && o.habits){
+      const habits = o.habits.map((name,i)=>({ id:'h'+i, name, emoji:EMOJIS[i%EMOJIS.length], color:COLORS[i%COLORS.length],
+        start:o.start, duration:o.duration, every:o.every, first:o.first, last:o.last }));
+      const log = {};
+      Object.keys(o.log||{}).forEach(d=>{ log[d] = o.log[d].map(i=>'h'+i); });
+      const s = { v:2, habits, log, fired:{}, photo:'' };
+      localStorage.setItem(KEY, JSON.stringify(s)); return s;
+    }
+  } catch(e){}
+  return { v:2, habits:[], log:{}, fired:{}, photo:'' };
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){ alert('Stockage plein : retire l\'image d\'objectif.'); } }
+function pad(n){ return String(n).padStart(2,'0'); }
+function iso(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function parseISO(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function todayISO(){ return iso(new Date()); }
+function toMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function dayIdx(h){ return Math.round((parseISO(todayISO()) - parseISO(h.start)) / 86400000); }
+function isActive(h){ const i = dayIdx(h); return i>=0 && i<h.duration; }
+function isDone(h,date){ return (S.log[date||todayISO()]||[]).includes(h.id); }
+function inWindow(h){ const n=new Date(), m=n.getHours()*60+n.getMinutes(); return m>=toMin(h.first) && m<=toMin(h.last); }
+function streak(h){
+  let n=0; const d=parseISO(todayISO());
+  if(!isDone(h,iso(d))) d.setDate(d.getDate()-1);
+  while(iso(d)>=h.start && isDone(h,iso(d))){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+
+/* ---------- affichage ---------- */
+function render(){
+  const act = S.habits.filter(isActive);
+  const done = act.filter(h=>isDone(h)).length;
+  $('status').textContent = S.habits.length
+    ? (act.length ? done+' / '+act.length+' habitudes faites aujourd\'hui' : 'Aucune habitude active aujourd\'hui')
+    : 'Ajoute ta première habitude';
+  $('hero').style.backgroundImage = S.photo ? 'url('+S.photo+')' : '';
+  $('photoDel').classList.toggle('hidden', !S.photo);
+
+  const list = $('list'); list.innerHTML = '';
+  S.habits.forEach(h=>{
+    const idx = dayIdx(h), active = isActive(h), d = active && isDone(h);
+    const card = document.createElement('div');
+    card.className = 'card h' + (d?' done':'') + (!active?' off':'');
+    card.style.setProperty('--c', h.color);
+    let meta;
+    if(idx<0) meta = 'Commence le '+parseISO(h.start).toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+    else if(idx>=h.duration) meta = 'Terminé 🎉 ('+h.duration+' jours)';
+    else meta = 'Jour '+(idx+1)+' / '+h.duration+'  ·  🔥 '+streak(h);
+    card.innerHTML = '<div class="top"><div class="emo"></div><div class="info"><div class="name"></div><div class="meta"></div></div>'
+      +'<button class="edit">✏️</button><div class="box">'+(d?'✓':'')+'</div></div><div class="bar"><i></i></div><div class="grid"></div>';
+    card.querySelector('.emo').textContent = h.emoji;
+    card.querySelector('.name').textContent = h.name;
+    card.querySelector('.meta').textContent = meta;
+    let okDays=0; const g = card.querySelector('.grid');
+    for(let k=0;k<h.duration;k++){
+      const dt = parseISO(h.start); dt.setDate(dt.getDate()+k);
+      const x = document.createElement('div'); let c='d';
+      if(isDone(h,iso(dt))){ c+=' full'; okDays++; } else if(k<idx) c+=' miss';
+      if(k===idx) c+=' today'; x.className=c; g.appendChild(x);
+    }
+    card.querySelector('.bar > i').style.width = Math.round(okDays/h.duration*100)+'%';
+    card.querySelector('.box').onclick = () => { if(active) toggle(h); };
+    card.querySelector('.edit').onclick = e => { e.stopPropagation(); openForm(h); };
+    list.appendChild(card);
+  });
+  if(!S.habits.length) list.innerHTML = '<div class="card"><p class="note">Aucune habitude pour l\'instant. Appuie sur « Ajouter une habitude » pour commencer.</p></div>';
+  check(false);
+}
+function toggle(h){
+  const t=todayISO(); S.log[t]=S.log[t]||[];
+  const p=S.log[t].indexOf(h.id);
+  if(p>=0) S.log[t].splice(p,1); else S.log[t].push(h.id);
+  save(); render();
+}
+
+/* ---------- formulaire ---------- */
+function buildPickers(){
+  $('fEmojis').innerHTML=''; EMOJIS.forEach(e=>{ const s=document.createElement('span'); s.textContent=e; s.className=e===fEmoji?'sel':''; s.onclick=()=>{fEmoji=e;buildPickers();}; $('fEmojis').appendChild(s); });
+  $('fColors').innerHTML=''; COLORS.forEach(c=>{ const s=document.createElement('span'); s.style.background=c; s.className=c===fColor?'sel':''; s.onclick=()=>{fColor=c;buildPickers();}; $('fColors').appendChild(s); });
+}
+function openForm(h){
+  editingId = h ? h.id : null;
+  $('formTitle').textContent = h ? 'Modifier l\'habitude' : 'Nouvelle habitude';
+  $('fName').value = h ? h.name : '';
+  fEmoji = h ? h.emoji : EMOJIS[S.habits.length % EMOJIS.length];
+  fColor = h ? h.color : COLORS[S.habits.length % COLORS.length];
+  $('fStart').value = h ? h.start : todayISO();
+  $('fDur').value = h ? h.duration : 30;
+  $('fFirst').value = h ? h.first : '04:30';
+  $('fLast').value = h ? h.last : '21:00';
+  $('fEvery').value = h ? h.every : 60;
+  $('fDelete').classList.toggle('hidden', !h);
+  buildPickers();
+  $('main').classList.add('hidden'); $('form').classList.remove('hidden'); window.scrollTo(0,0);
+}
+function closeForm(){ $('form').classList.add('hidden'); $('main').classList.remove('hidden'); render(); }
+$('add').onclick = () => openForm(null);
+$('fCancel').onclick = closeForm;
+$('fSave').onclick = () => {
+  const name = $('fName').value.trim(), dur = parseInt($('fDur').value,10);
+  if(!name){ alert('Donne un nom à l\'habitude.'); return; }
+  if(!$('fStart').value){ alert('Choisis une date de début.'); return; }
+  if(!(dur>=1 && dur<=365)){ alert('Le nombre de jours doit être entre 1 et 365.'); return; }
+  if(toMin($('fLast').value) <= toMin($('fFirst').value)){ alert('Le dernier rappel doit être après le premier.'); return; }
+  const data = { name, emoji:fEmoji, color:fColor, start:$('fStart').value, duration:dur, every:+$('fEvery').value, first:$('fFirst').value, last:$('fLast').value };
+  if(editingId){ const h = S.habits.find(x=>x.id===editingId); Object.assign(h, data); }
+  else S.habits.push(Object.assign({ id:'h'+Date.now() }, data));
+  save(); closeForm();
+};
+$('fDelete').onclick = () => {
+  if(!confirm('Supprimer cette habitude et son historique ?')) return;
+  S.habits = S.habits.filter(x=>x.id!==editingId);
+  Object.keys(S.log).forEach(d=>{ S.log[d] = S.log[d].filter(i=>i!==editingId); });
+  save(); closeForm();
+};
+
+/* ---------- rappels dans l'app ---------- */
+function notify(msg){
+  const b=$('banner'); b.textContent=msg; b.style.display='block';
+  if('Notification' in window && Notification.permission==='granted'){
+    if(navigator.serviceWorker && navigator.serviceWorker.ready){
+      navigator.serviceWorker.ready.then(r=>r.showNotification('Habitudes',{body:msg,tag:'habitudes'})).catch(()=>{ try{ new Notification('Habitudes',{body:msg}); }catch(e){} });
+    } else { try{ new Notification('Habitudes',{body:msg}); }catch(e){} }
+  }
+  if(navigator.vibrate) navigator.vibrate(200);
+}
+function check(fire){
+  const b=$('banner');
+  const pend = S.habits.filter(h=>isActive(h) && !isDone(h) && inWindow(h));
+  if(!pend.length){ b.style.display='none'; return; }
+  b.textContent = 'Pas encore fait : '+pend.map(h=>h.emoji+' '+h.name).join(', ')+' 👉 coche quand c\'est fait.';
+  b.style.display='block';
+  if(!fire) return;
+  const now=new Date(), m=now.getHours()*60+now.getMinutes(), due=[];
+  pend.forEach(h=>{
+    const since=m-toMin(h.first), key=todayISO()+'-'+since;
+    if(since>=0 && since%h.every===0 && S.fired[h.id]!==key){ S.fired[h.id]=key; due.push(h); }
+  });
+  if(due.length){ save(); notify('Est-ce que tu l\'as fait ? Reste : '+due.map(h=>h.emoji+' '+h.name).join(', ')); }
+}
+setInterval(()=>check(true), 20000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ render(); check(true); } });
+$('perm').onclick = async () => {
+  if(!('Notification' in window)){ alert('Ouvre l\'app depuis l\'icône de l\'écran d\'accueil pour activer les notifications.'); return; }
+  const r = await Notification.requestPermission(); alert(r==='granted' ? 'Notifications activées ✅' : 'Notifications refusées.');
+};
+$('test').onclick = () => notify('Test : les rappels fonctionnent ✅');
+
+/* ---------- export calendrier (.ics) ---------- */
+function icsDate(dateStr, hhmm){ return dateStr.replace(/-/g,'')+'T'+hhmm.replace(':','')+'00'; }
+function addMin(hhmm, n){ const t=toMin(hhmm)+n; return pad(Math.floor(t/60)%24)+':'+pad(t%60); }
+$('ics').onclick = () => {
+  const hs = S.habits.filter(h=>dayIdx(h)<h.duration);
+  if(!hs.length){ alert('Ajoute d\'abord une habitude.'); return; }
+  const L = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Habitudes//FR','CALSCALE:GREGORIAN'];
+  const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  hs.forEach(h=>{
+    const startStr = dayIdx(h)<0 ? h.start : todayISO();
+    const left = dayIdx(h)<0 ? h.duration : h.duration - dayIdx(h);
+    for(let m=toMin(h.first); m<=toMin(h.last); m+=h.every){
+      const hh = pad(Math.floor(m/60))+':'+pad(m%60);
+      L.push('BEGIN:VEVENT','UID:'+h.id+'-'+m+'@habitudes','DTSTAMP:'+stamp,
+        'DTSTART:'+icsDate(startStr,hh),'DTEND:'+icsDate(startStr,addMin(hh,5)),
+        'RRULE:FREQ=DAILY;COUNT='+left,
+        'SUMMARY:'+(h.emoji+' '+h.name+' : l\'as-tu fait ?').replace(/[,;]/g,' '),
+        'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Habitude','TRIGGER:PT0S','END:VALARM','END:VEVENT');
+    }
+  });
+  L.push('END:VCALENDAR');
+  const blob = new Blob([L.join('\r\n')], {type:'text/calendar'});
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = 'habitudes.ics'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+};
+
+/* ---------- image d'objectif ---------- */
+$('photoBtn').onclick = () => $('photoIn').click();
+$('photoDel').onclick = () => { S.photo=''; save(); render(); };
+$('photoIn').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const w = Math.min(800, img.width), h = Math.round(img.height * w / img.width);
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      S.photo = c.toDataURL('image/jpeg',0.7); save(); render();
+    };
+    img.src = r.result;
+  };
+  r.readAsDataURL(f);
+};
+
+/* ---------- icône d'écran d'accueil + hors-ligne ---------- */
+(function(){
+  try {
+    const c=document.createElement('canvas'); c.width=c.height=180; const x=c.getContext('2d');
+    const g=x.createLinearGradient(0,0,180,180); g.addColorStop(0,'#2a3a7a'); g.addColorStop(1,'#6c8cff');
+    x.fillStyle=g; x.fillRect(0,0,180,180); x.font='100px serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText('🔥',90,98);
+    $('touchIcon').href = c.toDataURL('image/png');
+  } catch(e){}
+})();
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+function netStatus(){ $('net').textContent = navigator.onLine ? '' : '📴 Mode hors connexion : tout fonctionne.'; }
+window.addEventListener('online',netStatus); window.addEventListener('offline',netStatus); netStatus();
+
+render();
+</script>
+</body>
+</html>
